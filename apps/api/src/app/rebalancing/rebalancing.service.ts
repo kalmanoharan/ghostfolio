@@ -480,21 +480,31 @@ export class RebalancingService {
       withSummary: true
     });
 
-    // Get exclusions
+    // Get exclusions with symbol profile info
     const exclusions = await this.prismaService.rebalancingExclusion.findMany({
-      where: { strategyId: strategy.id, userId }
+      where: { strategyId: strategy.id, userId },
+      include: { symbolProfile: { select: { dataSource: true, symbol: true } } }
     });
+
+    // Create a map using dataSource:symbol as key
     const exclusionMap = new Map(
-      exclusions.map((e) => [e.symbolProfileId, e])
+      exclusions.map((e) => [
+        `${e.symbolProfile.dataSource}:${e.symbolProfile.symbol}`,
+        e
+      ])
     );
+
+    // Helper to get exclusion key
+    const getExclusionKey = (h: { dataSource: string; symbol: string }) =>
+      `${h.dataSource}:${h.symbol}`;
 
     // Process holdings
     const allHoldings = Object.values(portfolioDetails.holdings);
     const excludedHoldings = allHoldings.filter(
-      (h) => exclusionMap.get(h.id)?.excludeFromCalculation
+      (h) => exclusionMap.get(getExclusionKey(h))?.excludeFromCalculation
     );
     const includedHoldings = allHoldings.filter(
-      (h) => !exclusionMap.get(h.id)?.excludeFromCalculation
+      (h) => !exclusionMap.get(getExclusionKey(h))?.excludeFromCalculation
     );
 
     // Calculate total portfolio value (only included holdings)
@@ -618,7 +628,7 @@ export class RebalancingService {
         name: h.name || '',
         value: h.valueInBaseCurrency ?? 0,
         excludeFromCalculation: true,
-        neverSell: exclusionMap.get(h.id)?.neverSell || false
+        neverSell: exclusionMap.get(getExclusionKey(h))?.neverSell || false
       }))
     };
   }
@@ -777,29 +787,32 @@ export class RebalancingService {
     subClassValue: number,
     exclusionMap: Map<string, RebalancingExclusion>
   ): HoldingAllocation[] {
-    return holdings.map((h) => ({
-      symbol: h.symbol,
-      name: h.name || '',
-      dataSource: h.dataSource,
-      symbolProfileId: h.id,
-      shares: h.quantity ?? 0,
-      price: h.marketPrice ?? 0,
-      value: h.valueInBaseCurrency ?? 0,
-      percentOfSubClass:
-        subClassValue > 0
-          ? ((h.valueInBaseCurrency ?? 0) / subClassValue) * 100
-          : 0,
-      percentOfAssetClass:
-        assetClassValue > 0
-          ? ((h.valueInBaseCurrency ?? 0) / assetClassValue) * 100
-          : 0,
-      percentOfTotal:
-        portfolioValue > 0
-          ? ((h.valueInBaseCurrency ?? 0) / portfolioValue) * 100
-          : 0,
-      isExcluded: exclusionMap.get(h.id)?.excludeFromCalculation || false,
-      neverSell: exclusionMap.get(h.id)?.neverSell || false
-    }));
+    return holdings.map((h) => {
+      const exclusionKey = `${h.dataSource}:${h.symbol}`;
+      return {
+        symbol: h.symbol,
+        name: h.name || '',
+        dataSource: h.dataSource,
+        symbolProfileId: `${h.dataSource}:${h.symbol}`,
+        shares: h.quantity ?? 0,
+        price: h.marketPrice ?? 0,
+        value: h.valueInBaseCurrency ?? 0,
+        percentOfSubClass:
+          subClassValue > 0
+            ? ((h.valueInBaseCurrency ?? 0) / subClassValue) * 100
+            : 0,
+        percentOfAssetClass:
+          assetClassValue > 0
+            ? ((h.valueInBaseCurrency ?? 0) / assetClassValue) * 100
+            : 0,
+        percentOfTotal:
+          portfolioValue > 0
+            ? ((h.valueInBaseCurrency ?? 0) / portfolioValue) * 100
+            : 0,
+        isExcluded: exclusionMap.get(exclusionKey)?.excludeFromCalculation || false,
+        neverSell: exclusionMap.get(exclusionKey)?.neverSell || false
+      };
+    });
   }
 }
 

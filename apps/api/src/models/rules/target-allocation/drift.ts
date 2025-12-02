@@ -1,6 +1,5 @@
 import { Rule } from '@ghostfolio/api/models/rule';
 import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-data/exchange-rate-data.service';
-import { I18nService } from '@ghostfolio/api/services/i18n/i18n.service';
 import { RuleSettings, UserSettings } from '@ghostfolio/common/interfaces';
 
 export class TargetAllocationDrift extends Rule<Settings> {
@@ -8,7 +7,6 @@ export class TargetAllocationDrift extends Rule<Settings> {
 
   public constructor(
     protected exchangeRateDataService: ExchangeRateDataService,
-    private i18nService: I18nService,
     driftData: DriftData | null,
     languageCode: string
   ) {
@@ -20,7 +18,7 @@ export class TargetAllocationDrift extends Rule<Settings> {
     this.driftData = driftData;
   }
 
-  public evaluate(ruleSettings: Settings) {
+  public evaluate(_ruleSettings: Settings) {
     if (!this.driftData || !this.driftData.hasActiveStrategy) {
       return {
         evaluation: 'No rebalancing strategy configured',
