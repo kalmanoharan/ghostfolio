@@ -36,7 +36,11 @@ export const warnColorRgb = {
 
 export const ASSET_CLASS_MAPPING = new Map<AssetClass, AssetSubClass[]>([
   [AssetClass.ALTERNATIVE_INVESTMENT, [AssetSubClass.COLLECTIBLE]],
-  [AssetClass.COMMODITY, [AssetSubClass.PRECIOUS_METAL]],
+  [AssetClass.COMMODITY, [AssetSubClass.COMMODITY, AssetSubClass.PRECIOUS_METAL]],
+  [
+    AssetClass.DEBT,
+    [AssetSubClass.BOND, AssetSubClass.DEBT_FUND, AssetSubClass.FIXED_DEPOSIT]
+  ],
   [
     AssetClass.EQUITY,
     [
@@ -47,8 +51,17 @@ export const ASSET_CLASS_MAPPING = new Map<AssetClass, AssetSubClass[]>([
     ]
   ],
   [AssetClass.FIXED_INCOME, [AssetSubClass.BOND]],
-  [AssetClass.LIQUIDITY, [AssetSubClass.CRYPTOCURRENCY]],
-  [AssetClass.REAL_ESTATE, []]
+  [AssetClass.LIQUIDITY, [AssetSubClass.CASH, AssetSubClass.CRYPTOCURRENCY]],
+  [
+    AssetClass.PRECIOUS_METALS,
+    [
+      AssetSubClass.GOLD_22K,
+      AssetSubClass.GOLD_24K,
+      AssetSubClass.GOLD_ETF,
+      AssetSubClass.SILVER_BAR
+    ]
+  ],
+  [AssetClass.REAL_ESTATE, [AssetSubClass.HOUSE, AssetSubClass.PLOT]]
 ]);
 
 export const CACHE_TTL_NO_CACHE = 1;

@@ -45,20 +45,31 @@ const locales = {
   // AssetClass (enum)
   ALTERNATIVE_INVESTMENT: $localize`Alternative Investment`,
   COMMODITY: $localize`Commodity`,
+  DEBT: $localize`Debt`,
   EQUITY: $localize`Equity`,
   FIXED_INCOME: $localize`Fixed Income`,
   LIQUIDITY: $localize`Liquidity`,
+  PRECIOUS_METALS: $localize`Precious Metals`,
   REAL_ESTATE: $localize`Real Estate`,
 
   // AssetSubClass (enum)
   BOND: $localize`Bond`,
   CASH: $localize`Cash`,
   COLLECTIBLE: $localize`Collectible`,
+  COMMODITY: $localize`Commodity`,
   CRYPTOCURRENCY: $localize`Cryptocurrency`,
+  DEBT_FUND: $localize`Debt Fund`,
   ETF: $localize`ETF`,
+  FIXED_DEPOSIT: $localize`Fixed Deposit`,
+  GOLD_22K: $localize`Gold 22K`,
+  GOLD_24K: $localize`Gold 24K`,
+  GOLD_ETF: $localize`Gold ETF`,
+  HOUSE: $localize`House`,
   MUTUALFUND: $localize`Mutual Fund`,
+  PLOT: $localize`Plot`,
   PRECIOUS_METAL: $localize`Precious Metal`,
   PRIVATE_EQUITY: $localize`Private Equity`,
+  SILVER_BAR: $localize`Silver Bar`,
   STOCK: $localize`Stock`,
 
   // Benchmark
