@@ -462,7 +462,7 @@ export class RebalancingService {
 
   public async getAllocationAnalysis(
     userId: string,
-    impersonationId: string,
+    impersonationId: string | null,
     strategyId?: string
   ): Promise<AllocationAnalysis> {
     const strategy = strategyId
@@ -475,7 +475,7 @@ export class RebalancingService {
 
     // Get portfolio details
     const portfolioDetails = await this.portfolioService.getDetails({
-      impersonationId,
+      impersonationId: impersonationId || undefined,
       userId,
       withSummary: true
     });
@@ -635,7 +635,7 @@ export class RebalancingService {
 
   public async getDriftSummary(
     userId: string,
-    impersonationId: string
+    impersonationId: string | null
   ): Promise<DriftSummary> {
     const strategy = await this.getActiveStrategy(userId);
 
@@ -675,7 +675,7 @@ export class RebalancingService {
 
   public async getRebalancingSuggestions(
     userId: string,
-    impersonationId: string,
+    impersonationId: string | null,
     strategyId?: string
   ): Promise<RebalancingSuggestion[]> {
     const analysis = await this.getAllocationAnalysis(
