@@ -4,7 +4,7 @@ import { ASSET_CLASS_MAPPING } from '@ghostfolio/common/config';
 import { User } from '@ghostfolio/common/interfaces';
 import { translate } from '@ghostfolio/ui/i18n';
 
-import { CommonModule, CurrencyPipe, DecimalPipe, PercentPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -16,7 +16,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -122,7 +122,6 @@ interface Suggestion {
     MatTableModule,
     MatTabsModule,
     MatTooltipModule,
-    PercentPipe,
     ReactiveFormsModule
   ],
   selector: 'gf-rebalancing-page',
@@ -177,7 +176,6 @@ export class RebalancingPageComponent implements OnDestroy, OnInit {
   public constructor(
     private changeDetectorRef: ChangeDetectorRef,
     private dataService: DataService,
-    private dialog: MatDialog,
     private userService: UserService
   ) {}
 
