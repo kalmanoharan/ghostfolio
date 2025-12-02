@@ -424,6 +424,34 @@ VALUES (gen_random_uuid()::text, 'manual', '20241202000000_added_custom_asset_cl
 \q
 ```
 
+### Asset Class Overrides Not Reflected in Admin Search
+
+**Symptom:** When you override asset class/sub-class for a symbol (e.g., SETFGOLD.NS → PRECIOUS_METALS/GOLD_ETF), the change works correctly in:
+- Allocations charts ✅
+- Portfolio calculations ✅
+- Holdings display ✅
+
+But does NOT work in:
+- Admin Control → Asset Profiles search/filter ❌
+
+**Cause:** The Admin search queries the original `SymbolProfile` table, not the merged data with `SymbolProfileOverrides`.
+
+**Workaround:** Update original records directly:
+```bash
+docker exec gf-postgres psql -U user ghostfolio-db -c "
+UPDATE \"SymbolProfile\" sp
+SET \"assetClass\" = spo.\"assetClass\", \"assetSubClass\" = spo.\"assetSubClass\"
+FROM \"SymbolProfileOverrides\" spo
+WHERE sp.id = spo.\"symbolProfileId\"
+AND spo.\"assetClass\" IS NOT NULL;
+"
+docker exec gf-redis redis-cli --pass 'YOUR_REDIS_PASSWORD' FLUSHALL
+```
+
+**Note:** This workaround could be overwritten by data gathering. A proper fix would require modifying the admin search to join with overrides.
+
+---
+
 ### Can't See Edit Button on Activities
 
 **Cause:** The Edit button is in a context menu (three dots ⋯)
