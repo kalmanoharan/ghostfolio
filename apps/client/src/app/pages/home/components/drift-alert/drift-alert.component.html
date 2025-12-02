@@ -1,0 +1,16 @@
+@if (!isLoading && shouldShowAlert()) {
+  <div class="drift-alert" [ngClass]="getStatusClass()">
+    <mat-icon>
+      {{ driftSummary?.overallStatus === 'CRITICAL' ? 'warning' : 'info' }}
+    </mat-icon>
+    <div class="alert-content">
+      <div class="alert-title">Portfolio Drift Alert</div>
+      <div class="alert-message">
+        {{ driftSummary?.categoriesOverThreshold?.length || 0 }} category(ies)
+        exceed {{ driftSummary?.driftThreshold }}% drift threshold
+      </div>
+    </div>
+    <button mat-button [routerLink]="rebalancingRoute">View Details</button>
+  </div>
+}
+

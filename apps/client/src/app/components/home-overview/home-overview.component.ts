@@ -1,4 +1,5 @@
 import { GfPortfolioPerformanceComponent } from '@ghostfolio/client/components/portfolio-performance/portfolio-performance.component';
+import { GfDriftAlertComponent } from '@ghostfolio/client/pages/home/components/drift-alert/drift-alert.component';
 import { LayoutService } from '@ghostfolio/client/core/layout.service';
 import { DataService } from '@ghostfolio/client/services/data.service';
 import { ImpersonationStorageService } from '@ghostfolio/client/services/impersonation-storage.service';
@@ -31,6 +32,7 @@ import { takeUntil } from 'rxjs/operators';
 @Component({
   imports: [
     CommonModule,
+    GfDriftAlertComponent,
     GfLineChartComponent,
     GfPortfolioPerformanceComponent,
     MatButtonModule,

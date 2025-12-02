@@ -183,33 +183,34 @@ model Settings {
 }
 
 model SymbolProfile {
-  activities             Order[]
-  assetClass             AssetClass?
-  assetSubClass          AssetSubClass?
-  comment                String?
-  countries              Json?
-  createdAt              DateTime                @default(now())
-  currency               String
-  cusip                  String?
-  dataSource             DataSource
-  figi                   String?
-  figiComposite          String?
-  figiShareClass         String?
-  holdings               Json?                   @default("[]")
-  id                     String                  @id @default(uuid())
-  isActive               Boolean                 @default(true)
-  isin                   String?
-  name                   String?
-  updatedAt              DateTime                @updatedAt
-  scraperConfiguration   Json?
-  sectors                Json?
-  symbol                 String
-  symbolMapping          Json?
-  url                    String?
-  user                   User?                   @relation(fields: [userId], onDelete: Cascade, references: [id])
-  userId                 String?
-  watchedBy              User[]                  @relation("UserWatchlist")
-  SymbolProfileOverrides SymbolProfileOverrides?
+  activities              Order[]
+  assetClass              AssetClass?
+  assetSubClass           AssetSubClass?
+  comment                 String?
+  countries               Json?
+  createdAt               DateTime                 @default(now())
+  currency                String
+  cusip                   String?
+  dataSource              DataSource
+  figi                    String?
+  figiComposite           String?
+  figiShareClass          String?
+  holdings                Json?                    @default("[]")
+  id                      String                   @id @default(uuid())
+  isActive                Boolean                  @default(true)
+  isin                    String?
+  name                    String?
+  rebalancingExclusions   RebalancingExclusion[]
+  updatedAt               DateTime                 @updatedAt
+  scraperConfiguration    Json?
+  sectors                 Json?
+  symbol                  String
+  symbolMapping           Json?
+  url                     String?
+  user                    User?                    @relation(fields: [userId], onDelete: Cascade, references: [id])
+  userId                  String?
+  watchedBy               User[]                   @relation("UserWatchlist")
+  SymbolProfileOverrides  SymbolProfileOverrides?
 
   @@unique([dataSource, symbol])
   @@index([assetClass])
@@ -259,32 +260,115 @@ model Tag {
 }
 
 model User {
-  accessesGet   Access[]        @relation("accessGet")
-  accessesGive  Access[]        @relation("accessGive")
-  accessToken   String?
-  accounts      Account[]
-  activities    Order[]
-  analytics     Analytics?
-  apiKeys       ApiKey[]
-  authChallenge String?
-  authDevices   AuthDevice[]
-  createdAt     DateTime        @default(now())
-  id            String          @id @default(uuid())
-  provider      Provider        @default(ANONYMOUS)
-  role          Role            @default(USER)
-  settings      Settings?
-  subscriptions Subscription[]
-  tags          Tag[]
-  thirdPartyId  String?
-  updatedAt     DateTime        @updatedAt
-  watchlist     SymbolProfile[] @relation("UserWatchlist")
-  SymbolProfile SymbolProfile[]
+  accessesGet            Access[]                @relation("accessGet")
+  accessesGive           Access[]                @relation("accessGive")
+  accessToken            String?
+  accounts               Account[]
+  activities             Order[]
+  analytics              Analytics?
+  apiKeys                ApiKey[]
+  authChallenge          String?
+  authDevices            AuthDevice[]
+  createdAt              DateTime                @default(now())
+  id                     String                  @id @default(uuid())
+  provider               Provider                @default(ANONYMOUS)
+  rebalancingStrategies  RebalancingStrategy[]
+  role                   Role                    @default(USER)
+  settings               Settings?
+  subscriptions          Subscription[]
+  tags                   Tag[]
+  thirdPartyId           String?
+  updatedAt              DateTime                @updatedAt
+  watchlist              SymbolProfile[]         @relation("UserWatchlist")
+  SymbolProfile          SymbolProfile[]
 
   @@index([accessToken])
   @@index([createdAt])
   @@index([provider])
   @@index([role])
   @@index([thirdPartyId])
+}
+
+// ============================================
+// REBALANCING FEATURE
+// ============================================
+
+model RebalancingStrategy {
+  id                    String                 @id @default(uuid())
+  name                  String
+  description           String?
+  isActive              Boolean                @default(false)
+  driftThreshold        Float                  @default(5.0)
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assetClassTargets     AssetClassTarget[]
+  rebalancingEvents     RebalancingEvent[]
+  rebalancingExclusions RebalancingExclusion[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@index([userId])
+}
+
+model AssetClassTarget {
+  id              String                @id @default(uuid())
+  strategyId      String
+  strategy        RebalancingStrategy   @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  assetClass      AssetClass
+  targetPercent   Float
+  subClassTargets AssetSubClassTarget[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@unique([strategyId, assetClass])
+  @@index([strategyId])
+}
+
+model AssetSubClassTarget {
+  id                 String           @id @default(uuid())
+  assetClassTargetId String
+  assetClassTarget   AssetClassTarget @relation(fields: [assetClassTargetId], references: [id], onDelete: Cascade)
+  assetSubClass      AssetSubClass
+  targetPercent      Float
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([assetClassTargetId, assetSubClass])
+  @@index([assetClassTargetId])
+}
+
+model RebalancingExclusion {
+  id                     String              @id @default(uuid())
+  strategyId             String
+  strategy               RebalancingStrategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  userId                 String
+  symbolProfileId        String
+  symbolProfile          SymbolProfile       @relation(fields: [symbolProfileId], references: [id], onDelete: Cascade)
+  excludeFromCalculation Boolean             @default(true)
+  neverSell              Boolean             @default(false)
+  reason                 String?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  @@unique([strategyId, symbolProfileId])
+  @@index([strategyId])
+  @@index([userId])
+}
+
+model RebalancingEvent {
+  id              String              @id @default(uuid())
+  strategyId      String
+  strategy        RebalancingStrategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  userId          String
+  portfolioValue  Float
+  snapshotData    Json
+  suggestionsData Json
+  status          String              @default("REVIEWED")
+  notes           String?
+  createdAt       DateTime            @default(now())
+
+  @@index([strategyId])
+  @@index([userId])
 }
 
 enum AccessPermission {

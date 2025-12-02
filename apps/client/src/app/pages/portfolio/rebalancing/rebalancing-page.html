@@ -1,0 +1,503 @@
+<div class="container">
+  @if (isLoading) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
+    <!-- No Strategy State -->
+    @if (!activeStrategy) {
+      <div class="no-strategy">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Create Your First Rebalancing Strategy</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p>
+              Define target allocations for your portfolio and get suggestions
+              to keep it balanced.
+            </p>
+
+            <div class="create-strategy-form">
+              <mat-form-field appearance="outline">
+                <mat-label>Strategy Name</mat-label>
+                <input
+                  matInput
+                  [(ngModel)]="newStrategyName"
+                  placeholder="e.g., My 60/40 Portfolio"
+                />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Description (optional)</mat-label>
+                <textarea
+                  matInput
+                  [(ngModel)]="newStrategyDescription"
+                  rows="2"
+                ></textarea>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Drift Threshold (%)</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  [(ngModel)]="newStrategyDriftThreshold"
+                  min="1"
+                  max="50"
+                />
+                <mat-hint>Alert when allocation drifts by this percentage</mat-hint>
+              </mat-form-field>
+
+              <button
+                mat-raised-button
+                color="primary"
+                [disabled]="!newStrategyName.trim() || isCreatingStrategy"
+                (click)="createStrategy()"
+              >
+                @if (isCreatingStrategy) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  Create Strategy
+                }
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    } @else {
+      <!-- Strategy Active -->
+      <div class="strategy-header">
+        <div class="strategy-selector">
+          <mat-form-field appearance="outline">
+            <mat-label>Active Strategy</mat-label>
+            <mat-select
+              [value]="activeStrategy.id"
+              (selectionChange)="onStrategyChange($event.value)"
+            >
+              @for (strategy of strategies; track strategy.id) {
+                <mat-option [value]="strategy.id">
+                  {{ strategy.name }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="strategy-actions">
+          <button
+            mat-icon-button
+            color="warn"
+            matTooltip="Delete Strategy"
+            (click)="deleteStrategy(activeStrategy.id)"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      @if (analysis) {
+        <div class="summary-cards">
+          <mat-card class="summary-card">
+            <div class="card-label">Portfolio Value</div>
+            <div class="card-value">
+              {{ analysis.portfolioValue | currency : analysis.baseCurrency }}
+            </div>
+          </mat-card>
+
+          <mat-card
+            class="summary-card"
+            [ngClass]="getStatusClass(analysis.overallStatus)"
+          >
+            <div class="card-label">Max Drift</div>
+            <div class="card-value">{{ analysis.maxDrift | number : '1.1-1' }}%</div>
+            <div class="card-sublabel">
+              Threshold: {{ analysis.driftThreshold }}%
+            </div>
+          </mat-card>
+
+          <mat-card
+            class="summary-card"
+            [ngClass]="getStatusClass(analysis.overallStatus)"
+          >
+            <div class="card-label">Status</div>
+            <div class="card-value status-badge">
+              {{ analysis.overallStatus }}
+            </div>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Tabs -->
+      <mat-tab-group [(selectedIndex)]="selectedTab" animationDuration="0ms">
+        <!-- Overview Tab -->
+        <mat-tab label="Overview">
+          <div class="tab-content">
+            @if (analysis) {
+              <h3>Allocation Comparison</h3>
+              <table mat-table [dataSource]="analysis.assetClassAllocations" class="allocation-table">
+                <ng-container matColumnDef="assetClass">
+                  <th mat-header-cell *matHeaderCellDef>Asset Class</th>
+                  <td mat-cell *matCellDef="let row">
+                    <button
+                      mat-icon-button
+                      (click)="toggleAssetClassExpand(row.assetClass)"
+                      *ngIf="row.subClassAllocations?.length"
+                    >
+                      <mat-icon>
+                        {{ isExpanded(row.assetClass) ? 'expand_less' : 'expand_more' }}
+                      </mat-icon>
+                    </button>
+                    {{ translateAssetClass(row.assetClass) }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="target">
+                  <th mat-header-cell *matHeaderCellDef>Target</th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ row.targetPercent | number : '1.1-1' }}%
+                    <span class="value-hint">
+                      ({{ row.targetValue | currency : analysis!.baseCurrency }})
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="actual">
+                  <th mat-header-cell *matHeaderCellDef>Actual</th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ row.actualPercent | number : '1.1-1' }}%
+                    <span class="value-hint">
+                      ({{ row.actualValue | currency : analysis!.baseCurrency }})
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="drift">
+                  <th mat-header-cell *matHeaderCellDef>Drift</th>
+                  <td mat-cell *matCellDef="let row" [ngClass]="getDriftClass(row.driftPercent)">
+                    {{ row.driftPercent > 0 ? '+' : '' }}{{ row.driftPercent | number : '1.1-1' }}%
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Status</th>
+                  <td mat-cell *matCellDef="let row">
+                    <span class="status-indicator" [ngClass]="getStatusClass(row.driftStatus)">
+                      {{ row.driftStatus }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="allocationColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: allocationColumns"></tr>
+              </table>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- Targets Tab -->
+        <mat-tab label="Target Allocation">
+          <div class="tab-content">
+            @if (isEditingTargets) {
+              <div class="targets-editor">
+                <div class="editor-header">
+                  <h3>Edit Target Allocation</h3>
+                  <div class="total-indicator" [class.invalid]="getAssetClassTargetTotal() > 100">
+                    Total: {{ getAssetClassTargetTotal() | number : '1.0-0' }}%
+                  </div>
+                </div>
+
+                @for (target of editingAssetClassTargets; track target.assetClass; let i = $index) {
+                  <mat-card class="target-card">
+                    <div class="target-header">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Asset Class</mat-label>
+                        <mat-select
+                          [(ngModel)]="target.assetClass"
+                          [disabled]="!!target.id"
+                        >
+                          @for (ac of assetClasses; track ac) {
+                            <mat-option [value]="ac">
+                              {{ translateAssetClass(ac) }}
+                            </mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline">
+                        <mat-label>Target %</mat-label>
+                        <input
+                          matInput
+                          type="number"
+                          [(ngModel)]="target.targetPercent"
+                          min="0"
+                          max="100"
+                        />
+                      </mat-form-field>
+
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        (click)="removeAssetClassTarget(i)"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+
+                    <!-- Sub-class targets -->
+                    <div class="sub-targets">
+                      <div class="sub-header">
+                        <span>Sub-Classes</span>
+                        <span class="sub-total" [class.invalid]="getSubClassTargetTotal(target) > 100">
+                          Sub-total: {{ getSubClassTargetTotal(target) | number : '1.0-0' }}%
+                        </span>
+                      </div>
+
+                      @for (subTarget of target.subClassTargets; track subTarget.assetSubClass; let j = $index) {
+                        <div class="sub-target-row">
+                          <mat-form-field appearance="outline">
+                            <mat-label>Sub-Class</mat-label>
+                            <mat-select
+                              [(ngModel)]="subTarget.assetSubClass"
+                              [disabled]="!!subTarget.id"
+                            >
+                              @for (sc of (assetClassMapping.get(target.assetClass) || []); track sc) {
+                                <mat-option [value]="sc">
+                                  {{ translateAssetClass(sc) }}
+                                </mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+
+                          <mat-form-field appearance="outline">
+                            <mat-label>Target %</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              [(ngModel)]="subTarget.targetPercent"
+                              min="0"
+                              max="100"
+                            />
+                          </mat-form-field>
+
+                          <span class="calculated-percent">
+                            = {{ (target.targetPercent * subTarget.targetPercent / 100) | number : '1.1-1' }}% of total
+                          </span>
+
+                          <button
+                            mat-icon-button
+                            color="warn"
+                            (click)="removeSubClassTarget(i, j)"
+                          >
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                        </div>
+                      }
+
+                      <button
+                        mat-button
+                        (click)="addSubClassTarget(i)"
+                        [disabled]="getAvailableSubClasses(target.assetClass).length === 0"
+                      >
+                        <mat-icon>add</mat-icon>
+                        Add Sub-Class
+                      </button>
+                    </div>
+                  </mat-card>
+                }
+
+                <button
+                  mat-button
+                  (click)="addAssetClassTarget()"
+                  [disabled]="getAvailableAssetClasses().length === 0"
+                >
+                  <mat-icon>add</mat-icon>
+                  Add Asset Class
+                </button>
+
+                <div class="editor-actions">
+                  <button mat-button (click)="cancelEditingTargets()">Cancel</button>
+                  <button
+                    mat-raised-button
+                    color="primary"
+                    (click)="saveTargets()"
+                    [disabled]="getAssetClassTargetTotal() > 100"
+                  >
+                    Save Targets
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div class="targets-display">
+                <div class="targets-header">
+                  <h3>Current Targets</h3>
+                  <button mat-button color="primary" (click)="startEditingTargets()">
+                    <mat-icon>edit</mat-icon>
+                    Edit Targets
+                  </button>
+                </div>
+
+                @if (activeStrategy?.assetClassTargets?.length) {
+                  @for (target of activeStrategy.assetClassTargets; track target.id) {
+                    <mat-card class="target-display-card">
+                      <div class="target-display-header">
+                        <span class="asset-class-name">
+                          {{ translateAssetClass(target.assetClass) }}
+                        </span>
+                        <span class="target-percent">{{ target.targetPercent }}%</span>
+                      </div>
+
+                      @if (target.subClassTargets?.length) {
+                        <div class="sub-targets-display">
+                          @for (sub of target.subClassTargets; track sub.id) {
+                            <div class="sub-target-display">
+                              <span>{{ translateAssetClass(sub.assetSubClass) }}</span>
+                              <span>
+                                {{ sub.targetPercent }}% of {{ translateAssetClass(target.assetClass) }}
+                                ({{ (target.targetPercent * sub.targetPercent / 100) | number : '1.1-1' }}% of total)
+                              </span>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </mat-card>
+                  }
+                } @else {
+                  <p class="no-targets">No targets defined yet. Click "Edit Targets" to set up your allocation.</p>
+                }
+              </div>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- Exclusions Tab -->
+        <mat-tab label="Exclusions">
+          <div class="tab-content">
+            <h3>Holdings Exclusions</h3>
+            <p class="description">
+              Exclude specific holdings from rebalancing calculations or mark them as "never sell".
+            </p>
+
+            @if (getAllHoldings().length > 0) {
+              <table mat-table [dataSource]="getAllHoldings()" class="holdings-table">
+                <ng-container matColumnDef="exclude">
+                  <th mat-header-cell *matHeaderCellDef>Exclude</th>
+                  <td mat-cell *matCellDef="let row">
+                    <mat-checkbox
+                      [checked]="row.isExcluded"
+                      (change)="toggleExclusion(row, 'excludeFromCalculation', $event.checked)"
+                    ></mat-checkbox>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="neverSell">
+                  <th mat-header-cell *matHeaderCellDef>Never Sell</th>
+                  <td mat-cell *matCellDef="let row">
+                    <mat-checkbox
+                      [checked]="row.neverSell"
+                      (change)="toggleExclusion(row, 'neverSell', $event.checked)"
+                    ></mat-checkbox>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="symbol">
+                  <th mat-header-cell *matHeaderCellDef>Symbol</th>
+                  <td mat-cell *matCellDef="let row">{{ row.symbol }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="name">
+                  <th mat-header-cell *matHeaderCellDef>Name</th>
+                  <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="assetClass">
+                  <th mat-header-cell *matHeaderCellDef>Asset Class</th>
+                  <td mat-cell *matCellDef="let row">{{ translateAssetClass(row.assetClass) }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="value">
+                  <th mat-header-cell *matHeaderCellDef>Value</th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ row.value | currency : analysis?.baseCurrency }}
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="holdingColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: holdingColumns"></tr>
+              </table>
+            } @else {
+              <p class="no-data">No holdings found in this strategy's target allocation.</p>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- Suggestions Tab -->
+        <mat-tab label="Suggestions">
+          <div class="tab-content">
+            <h3>Rebalancing Suggestions</h3>
+
+            @if (suggestions.length > 0) {
+              <table mat-table [dataSource]="suggestions" class="suggestions-table">
+                <ng-container matColumnDef="priority">
+                  <th mat-header-cell *matHeaderCellDef>#</th>
+                  <td mat-cell *matCellDef="let row">{{ row.priority }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="action">
+                  <th mat-header-cell *matHeaderCellDef>Action</th>
+                  <td mat-cell *matCellDef="let row">
+                    <span
+                      class="action-badge"
+                      [class.buy]="row.action === 'BUY'"
+                      [class.sell]="row.action === 'SELL'"
+                    >
+                      {{ row.action }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="category">
+                  <th mat-header-cell *matHeaderCellDef>Category</th>
+                  <td mat-cell *matCellDef="let row">
+                    @if (row.symbol) {
+                      <strong>{{ row.symbol }}</strong> - {{ row.name }}
+                    } @else {
+                      {{ translateAssetClass(row.assetClass) }} /
+                      {{ translateAssetClass(row.assetSubClass) }}
+                    }
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="amount">
+                  <th mat-header-cell *matHeaderCellDef>Amount</th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ row.suggestedAmount | currency : analysis?.baseCurrency }}
+                    @if (row.suggestedShares) {
+                      <br /><small>({{ row.suggestedShares }} shares)</small>
+                    }
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="reason">
+                  <th mat-header-cell *matHeaderCellDef>Reason</th>
+                  <td mat-cell *matCellDef="let row">{{ row.reason }}</td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="suggestionColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: suggestionColumns"></tr>
+              </table>
+            } @else if (analysis?.overallStatus === 'OK') {
+              <div class="balanced-message">
+                <mat-icon>check_circle</mat-icon>
+                <p>Your portfolio is well balanced! No rebalancing needed.</p>
+              </div>
+            } @else {
+              <p class="no-data">No suggestions available. Set up your target allocation first.</p>
+            }
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    }
+  }
+</div>
+

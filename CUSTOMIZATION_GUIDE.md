@@ -6,7 +6,7 @@ This is a customized fork of [Ghostfolio](https://github.com/ghostfolio/ghostfol
 
 **Maintainer:** kalmanoharan  
 **Docker Hub:** https://hub.docker.com/r/kalmanoharan/ghostfolio  
-**Current Version:** v1.2.0
+**Current Version:** v1.3.0
 
 ---
 
@@ -26,7 +26,8 @@ This is a customized fork of [Ghostfolio](https://github.com/ghostfolio/ghostfol
 
 | Version | Date | Changes |
 |---------|------|---------|
-| **v1.2.0** | Dec 2, 2025 | Tag edit bug fix, Activities search feature |
+| **v1.3.0** | Dec 2, 2025 | Portfolio Rebalancing feature |
+| v1.2.0 | Dec 2, 2025 | Tag edit bug fix, Activities search feature |
 | v1.1.0 | Dec 2, 2025 | Semantic versioning for Docker builds |
 | v1.0.0 | Dec 2, 2025 | Custom asset classes (DEBT, PRECIOUS_METALS) |
 
@@ -103,6 +104,102 @@ fetchActivities() {
 
 ---
 
+### Feature 3: Portfolio Rebalancing (v1.3.0)
+
+**Problem:** No way to define target allocations and get suggestions to rebalance the portfolio.
+
+**Solution:** Added a complete Portfolio Rebalancing feature with:
+- Hierarchical target allocations (Asset Class → Sub-Class)
+- Drift tracking with visual indicators
+- Buy/Sell suggestions
+- Holdings exclusions (exclude from calculation, never sell)
+- Drift alert widget on home dashboard
+
+**New Files Created:**
+
+Backend:
+- `apps/api/src/app/rebalancing/rebalancing.module.ts`
+- `apps/api/src/app/rebalancing/rebalancing.controller.ts`
+- `apps/api/src/app/rebalancing/rebalancing.service.ts`
+- `apps/api/src/app/rebalancing/dto/*.ts`
+- `apps/api/src/app/rebalancing/interfaces/*.ts`
+- `apps/api/src/models/rules/target-allocation/drift.ts`
+
+Frontend:
+- `apps/client/src/app/pages/portfolio/rebalancing/*`
+- `apps/client/src/app/pages/home/components/drift-alert/*`
+
+Database:
+- `prisma/migrations/20241202100000_add_rebalancing_feature/migration.sql`
+
+**Database Schema Additions:**
+```prisma
+model RebalancingStrategy {
+  id, name, description, isActive, driftThreshold, userId
+  assetClassTargets, rebalancingEvents, rebalancingExclusions
+}
+
+model AssetClassTarget {
+  id, strategyId, assetClass, targetPercent
+  subClassTargets
+}
+
+model AssetSubClassTarget {
+  id, assetClassTargetId, assetSubClass, targetPercent
+}
+
+model RebalancingExclusion {
+  id, strategyId, userId, symbolProfileId
+  excludeFromCalculation, neverSell, reason
+}
+
+model RebalancingEvent {
+  id, strategyId, userId, portfolioValue
+  snapshotData, suggestionsData, status, notes
+}
+```
+
+**API Endpoints:**
+```
+GET    /api/v1/rebalancing/strategies
+POST   /api/v1/rebalancing/strategies
+PUT    /api/v1/rebalancing/strategies/:id
+DELETE /api/v1/rebalancing/strategies/:id
+POST   /api/v1/rebalancing/strategies/:id/activate
+POST   /api/v1/rebalancing/strategies/:strategyId/asset-class-targets
+PUT    /api/v1/rebalancing/asset-class-targets/:id
+DELETE /api/v1/rebalancing/asset-class-targets/:id
+POST   /api/v1/rebalancing/asset-class-targets/:id/sub-class-targets
+PUT    /api/v1/rebalancing/sub-class-targets/:id
+DELETE /api/v1/rebalancing/sub-class-targets/:id
+GET    /api/v1/rebalancing/exclusions
+POST   /api/v1/rebalancing/exclusions
+DELETE /api/v1/rebalancing/exclusions/:id
+GET    /api/v1/rebalancing/analysis
+GET    /api/v1/rebalancing/drift-summary
+GET    /api/v1/rebalancing/suggestions
+```
+
+**How to Use:**
+1. Go to **Portfolio → Rebalancing** (new tab)
+2. Create a rebalancing strategy with a name and drift threshold
+3. Edit targets to define your desired allocation:
+   - Add Asset Classes (e.g., EQUITY 60%, DEBT 25%)
+   - Add Sub-Classes within each (e.g., ETF 50% of EQUITY)
+4. View the Overview tab to see current vs target allocation
+5. Check the Exclusions tab to exclude specific holdings
+6. View the Suggestions tab for buy/sell recommendations
+7. Drift alerts appear on the home dashboard when thresholds are exceeded
+
+**Key Concepts:**
+- **Drift:** The difference between actual and target allocation (%)
+- **Drift Threshold:** Alert threshold (default 5%)
+- **Status:** OK (< 50% threshold), WARNING (50-100% threshold), CRITICAL (> threshold)
+- **Exclude from Calculation:** Holding is ignored in allocation math
+- **Never Sell:** Holding won't appear in sell suggestions
+
+---
+
 ## Custom Asset Classes
 
 ### New Asset Classes (v1.0.0)
@@ -167,7 +264,7 @@ version: '3.8'
 
 services:
   ghostfolio:
-    image: kalmanoharan/ghostfolio:v1.2.0
+    image: kalmanoharan/ghostfolio:v1.3.0
     container_name: ghostfolio
     restart: unless-stopped
     environment:
@@ -211,7 +308,7 @@ If you have a fresh database, the migrations will run automatically on container
 
 1. Pull the new image:
    ```bash
-   docker pull kalmanoharan/ghostfolio:v1.2.0
+   docker pull kalmanoharan/ghostfolio:v1.3.0
    ```
 
 2. Update your docker-compose.yml with the new version
@@ -285,8 +382,8 @@ git push origin v1.3.0
 
 | Tag | Description | Stability |
 |-----|-------------|-----------|
-| `v1.2.0` | Exact version | Most stable |
-| `v1.2` | Latest v1.2.x patch | Stable |
+| `v1.3.0` | Exact version | Most stable |
+| `v1.3` | Latest v1.3.x patch | Stable |
 | `v1` | Latest v1.x.x | Rolling |
 | `latest` | Latest release | Current |
 | `dev` | Latest main branch | Experimental |
@@ -367,6 +464,9 @@ VALUES (gen_random_uuid()::text, 'manual', '20241202000000_added_custom_asset_cl
 | Translations | `libs/ui/src/lib/i18n.ts` |
 | Tags Selector | `libs/ui/src/lib/tags-selector/tags-selector.component.ts` |
 | Activities Page | `apps/client/src/app/pages/portfolio/activities/activities-page.*` |
+| Rebalancing Backend | `apps/api/src/app/rebalancing/*` |
+| Rebalancing Frontend | `apps/client/src/app/pages/portfolio/rebalancing/*` |
+| Drift Alert Widget | `apps/client/src/app/pages/home/components/drift-alert/*` |
 | GitHub Actions | `.github/workflows/docker-build.yml` |
 | Version | `VERSION` |
 

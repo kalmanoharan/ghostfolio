@@ -1,0 +1,57 @@
+:host {
+  display: block;
+}
+
+.drift-alert {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  background-color: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+
+  &.warning {
+    background-color: rgba(255, 152, 0, 0.1);
+    border-color: rgba(255, 152, 0, 0.3);
+
+    mat-icon {
+      color: #ff9800;
+    }
+  }
+
+  &.critical {
+    background-color: rgba(244, 67, 54, 0.1);
+    border-color: rgba(244, 67, 54, 0.3);
+
+    mat-icon {
+      color: #f44336;
+    }
+  }
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .alert-content {
+    flex: 1;
+
+    .alert-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .alert-message {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+  }
+
+  button {
+    white-space: nowrap;
+  }
+}
+

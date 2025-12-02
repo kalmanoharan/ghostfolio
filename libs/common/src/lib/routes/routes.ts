@@ -146,6 +146,11 @@ export const internalRoutes: Record<string, InternalRoute> = {
         path: 'x-ray',
         routerLink: ['/portfolio', 'x-ray'],
         title: 'X-ray'
+      },
+      rebalancing: {
+        path: 'rebalancing',
+        routerLink: ['/portfolio', 'rebalancing'],
+        title: $localize`Rebalancing`
       }
     },
     title: $localize`Portfolio`

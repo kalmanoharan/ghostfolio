@@ -882,4 +882,149 @@ export class DataService {
       (window as any).info = info;
     });
   }
+
+  // ============================================
+  // REBALANCING
+  // ============================================
+
+  public fetchRebalancingStrategies(): Observable<any[]> {
+    return this.http.get<any[]>('/api/v1/rebalancing/strategies');
+  }
+
+  public fetchRebalancingStrategy(strategyId: string): Observable<any> {
+    return this.http.get<any>(`/api/v1/rebalancing/strategies/${strategyId}`);
+  }
+
+  public createRebalancingStrategy(data: {
+    name: string;
+    description?: string;
+    isActive?: boolean;
+    driftThreshold?: number;
+  }): Observable<any> {
+    return this.http.post<any>('/api/v1/rebalancing/strategies', data);
+  }
+
+  public updateRebalancingStrategy(
+    strategyId: string,
+    data: {
+      name?: string;
+      description?: string;
+      isActive?: boolean;
+      driftThreshold?: number;
+    }
+  ): Observable<any> {
+    return this.http.put<any>(
+      `/api/v1/rebalancing/strategies/${strategyId}`,
+      data
+    );
+  }
+
+  public deleteRebalancingStrategy(strategyId: string): Observable<void> {
+    return this.http.delete<void>(
+      `/api/v1/rebalancing/strategies/${strategyId}`
+    );
+  }
+
+  public activateRebalancingStrategy(strategyId: string): Observable<any> {
+    return this.http.post<any>(
+      `/api/v1/rebalancing/strategies/${strategyId}/activate`,
+      {}
+    );
+  }
+
+  public createAssetClassTarget(
+    strategyId: string,
+    data: { assetClass: string; targetPercent: number }
+  ): Observable<any> {
+    return this.http.post<any>(
+      `/api/v1/rebalancing/strategies/${strategyId}/asset-class-targets`,
+      data
+    );
+  }
+
+  public updateAssetClassTarget(
+    targetId: string,
+    targetPercent: number
+  ): Observable<any> {
+    return this.http.put<any>(
+      `/api/v1/rebalancing/asset-class-targets/${targetId}`,
+      { targetPercent }
+    );
+  }
+
+  public deleteAssetClassTarget(targetId: string): Observable<void> {
+    return this.http.delete<void>(
+      `/api/v1/rebalancing/asset-class-targets/${targetId}`
+    );
+  }
+
+  public createSubClassTarget(
+    assetClassTargetId: string,
+    data: { assetSubClass: string; targetPercent: number }
+  ): Observable<any> {
+    return this.http.post<any>(
+      `/api/v1/rebalancing/asset-class-targets/${assetClassTargetId}/sub-class-targets`,
+      data
+    );
+  }
+
+  public updateSubClassTarget(
+    targetId: string,
+    targetPercent: number
+  ): Observable<any> {
+    return this.http.put<any>(
+      `/api/v1/rebalancing/sub-class-targets/${targetId}`,
+      { targetPercent }
+    );
+  }
+
+  public deleteSubClassTarget(targetId: string): Observable<void> {
+    return this.http.delete<void>(
+      `/api/v1/rebalancing/sub-class-targets/${targetId}`
+    );
+  }
+
+  public fetchRebalancingExclusions(strategyId?: string): Observable<any[]> {
+    let params = new HttpParams();
+    if (strategyId) {
+      params = params.set('strategyId', strategyId);
+    }
+    return this.http.get<any[]>('/api/v1/rebalancing/exclusions', { params });
+  }
+
+  public toggleRebalancingExclusion(data: {
+    symbolProfileId: string;
+    strategyId?: string;
+    excludeFromCalculation?: boolean;
+    neverSell?: boolean;
+    reason?: string;
+  }): Observable<any> {
+    return this.http.post<any>('/api/v1/rebalancing/exclusions', data);
+  }
+
+  public removeRebalancingExclusion(exclusionId: string): Observable<void> {
+    return this.http.delete<void>(
+      `/api/v1/rebalancing/exclusions/${exclusionId}`
+    );
+  }
+
+  public fetchAllocationAnalysis(strategyId?: string): Observable<any> {
+    let params = new HttpParams();
+    if (strategyId) {
+      params = params.set('strategyId', strategyId);
+    }
+    return this.http.get<any>('/api/v1/rebalancing/analysis', { params });
+  }
+
+  public fetchDriftSummary(): Observable<any> {
+    return this.http.get<any>('/api/v1/rebalancing/drift-summary');
+  }
+
+  public fetchRebalancingSuggestions(strategyId?: string): Observable<any[]> {
+    let params = new HttpParams();
+    if (strategyId) {
+      params = params.set('strategyId', strategyId);
+    }
+    return this.http.get<any[]>('/api/v1/rebalancing/suggestions', { params });
+  }
 }
