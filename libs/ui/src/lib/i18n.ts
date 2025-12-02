@@ -56,7 +56,7 @@ const locales = {
   BOND: $localize`Bond`,
   CASH: $localize`Cash`,
   COLLECTIBLE: $localize`Collectible`,
-  COMMODITY: $localize`Commodity`,
+  // COMMODITY already defined above in AssetClass
   CRYPTOCURRENCY: $localize`Cryptocurrency`,
   DEBT_FUND: $localize`Debt Fund`,
   ETF: $localize`ETF`,
