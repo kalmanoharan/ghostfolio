@@ -8,14 +8,18 @@ import { downloadAsFile } from '@ghostfolio/common/helper';
 import {
   Activity,
   AssetProfileIdentifier,
+  Filter,
   User
 } from '@ghostfolio/common/interfaces';
 import { hasPermission, permissions } from '@ghostfolio/common/permissions';
 import { GfActivitiesTableComponent } from '@ghostfolio/ui/activities-table';
 
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { Sort, SortDirection } from '@angular/material/sort';
@@ -24,10 +28,10 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
 import { format, parseISO } from 'date-fns';
 import { addIcons } from 'ionicons';
-import { addOutline } from 'ionicons/icons';
+import { addOutline, closeOutline } from 'ionicons/icons';
 import { DeviceDetectorService } from 'ngx-device-detector';
 import { Subject, Subscription } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 
 import { GfCreateOrUpdateActivityDialogComponent } from './create-or-update-activity-dialog/create-or-update-activity-dialog.component';
 import { CreateOrUpdateActivityDialogParams } from './create-or-update-activity-dialog/interfaces/interfaces';
@@ -40,7 +44,10 @@ import { ImportActivitiesDialogParams } from './import-activities-dialog/interfa
     GfActivitiesTableComponent,
     IonIcon,
     MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
     MatSnackBarModule,
+    ReactiveFormsModule,
     RouterModule
   ],
   selector: 'gf-activities-page',
@@ -56,6 +63,7 @@ export class GfActivitiesPageComponent implements OnDestroy, OnInit {
   public pageIndex = 0;
   public pageSize = DEFAULT_PAGE_SIZE;
   public routeQueryParams: Subscription;
+  public searchControl = new FormControl('');
   public sortColumn = 'date';
   public sortDirection: SortDirection = 'desc';
   public totalItems: number;
@@ -102,7 +110,7 @@ export class GfActivitiesPageComponent implements OnDestroy, OnInit {
         }
       });
 
-    addIcons({ addOutline });
+    addIcons({ addOutline, closeOutline });
   }
 
   public ngOnInit() {
@@ -113,6 +121,17 @@ export class GfActivitiesPageComponent implements OnDestroy, OnInit {
       .pipe(takeUntil(this.unsubscribeSubject))
       .subscribe((impersonationId) => {
         this.hasImpersonationId = !!impersonationId;
+      });
+
+    this.searchControl.valueChanges
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        takeUntil(this.unsubscribeSubject)
+      )
+      .subscribe(() => {
+        this.pageIndex = 0;
+        this.fetchActivities();
       });
 
     this.userService.stateChanged
@@ -129,9 +148,16 @@ export class GfActivitiesPageComponent implements OnDestroy, OnInit {
   }
 
   public fetchActivities() {
+    const filters: Filter[] = [...this.userService.getFilters()];
+    const searchTerm = this.searchControl.value?.trim();
+
+    if (searchTerm) {
+      filters.push({ id: searchTerm, type: 'SEARCH_QUERY' });
+    }
+
     this.dataService
       .fetchActivities({
-        filters: this.userService.getFilters(),
+        filters,
         skip: this.pageIndex * this.pageSize,
         sortColumn: this.sortColumn,
         sortDirection: this.sortDirection,

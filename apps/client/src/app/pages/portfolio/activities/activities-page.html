@@ -2,6 +2,26 @@
   <div class="mb-3 row">
     <div class="col">
       <h1 class="d-none d-sm-block h3 mb-3 text-center" i18n>Activities</h1>
+      <div class="mb-3 search-container">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label i18n>Search activities</mat-label>
+          <input
+            matInput
+            [formControl]="searchControl"
+            placeholder="Symbol, name, account, type..."
+          />
+          @if (searchControl.value) {
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="searchControl.reset()"
+            >
+              <ion-icon name="close-outline" />
+            </button>
+          }
+        </mat-form-field>
+      </div>
       <gf-activities-table
         [baseCurrency]="user?.settings?.baseCurrency"
         [dataSource]="dataSource"

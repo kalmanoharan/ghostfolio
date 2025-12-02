@@ -9,6 +9,8 @@ import {
   OnChanges,
   OnDestroy,
   OnInit,
+  Optional,
+  Self,
   signal,
   ViewChild
 } from '@angular/core';
@@ -16,7 +18,7 @@ import {
   ControlValueAccessor,
   FormControl,
   FormsModule,
-  NG_VALUE_ACCESSOR,
+  NgControl,
   ReactiveFormsModule
 } from '@angular/forms';
 import {
@@ -44,13 +46,6 @@ import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
     MatInputModule,
     ReactiveFormsModule
   ],
-  providers: [
-    {
-      multi: true,
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: GfTagsSelectorComponent
-    }
-  ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   selector: 'gf-tags-selector',
   styleUrls: ['./tags-selector.component.scss'],
@@ -73,7 +68,11 @@ export class GfTagsSelectorComponent
 
   private unsubscribeSubject = new Subject<void>();
 
-  public constructor() {
+  public constructor(@Optional() @Self() private ngControl: NgControl) {
+    if (this.ngControl) {
+      this.ngControl.valueAccessor = this;
+    }
+
     this.tagInputControl.valueChanges
       .pipe(takeUntil(this.unsubscribeSubject))
       .subscribe((value) => {
@@ -112,6 +111,7 @@ export class GfTagsSelectorComponent
 
     const newTags = this.tagsSelected();
     this.onChange(newTags);
+    this.markAsDirty();
     this.onTouched();
     this.tagInput.nativeElement.value = '';
     this.tagInputControl.setValue(undefined);
@@ -126,6 +126,7 @@ export class GfTagsSelectorComponent
 
     const newTags = this.tagsSelected();
     this.onChange(newTags);
+    this.markAsDirty();
     this.onTouched();
     this.updateFilters();
   }
@@ -154,6 +155,10 @@ export class GfTagsSelectorComponent
   public ngOnDestroy() {
     this.unsubscribeSubject.next();
     this.unsubscribeSubject.complete();
+  }
+
+  private markAsDirty(): void {
+    this.ngControl?.control?.markAsDirty();
   }
 
   private filterTags(query: string = ''): Tag[] {
