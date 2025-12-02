@@ -1,6 +1,6 @@
 import { PortfolioService } from '@ghostfolio/api/app/portfolio/portfolio.service';
 import { PrismaService } from '@ghostfolio/api/services/prisma/prisma.service';
-import { ASSET_CLASS_MAPPING } from '@ghostfolio/common/config';
+import { ASSET_CLASS_MAPPING, DEFAULT_CURRENCY } from '@ghostfolio/common/config';
 
 import {
   BadRequestException,
@@ -616,7 +616,7 @@ export class RebalancingService {
 
     return {
       portfolioValue,
-      baseCurrency: portfolioDetails.summary?.baseCurrency || 'USD',
+      baseCurrency: DEFAULT_CURRENCY,
       strategyId: strategy.id,
       strategyName: strategy.name,
       driftThreshold: strategy.driftThreshold,

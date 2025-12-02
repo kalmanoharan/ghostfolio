@@ -43,15 +43,13 @@ export class RebalancingController {
   // ============================================
 
   @Get('strategies')
-  @HasPermission(permissions.readPortfolio)
-  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  @UseGuards(AuthGuard('jwt'))
   public async getStrategies() {
     return this.rebalancingService.getStrategies(this.request.user.id);
   }
 
   @Get('strategies/:id')
-  @HasPermission(permissions.readPortfolio)
-  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  @UseGuards(AuthGuard('jwt'))
   public async getStrategy(@Param('id') id: string) {
     return this.rebalancingService.getStrategy(this.request.user.id, id);
   }
@@ -176,8 +174,7 @@ export class RebalancingController {
   // ============================================
 
   @Get('exclusions')
-  @HasPermission(permissions.readPortfolio)
-  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  @UseGuards(AuthGuard('jwt'))
   public async getExclusions(@Query('strategyId') strategyId?: string) {
     return this.rebalancingService.getExclusions(
       this.request.user.id,
@@ -205,14 +202,10 @@ export class RebalancingController {
   // ============================================
 
   @Get('analysis')
-  @HasPermission(permissions.readPortfolio)
-  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  @UseGuards(AuthGuard('jwt'))
   public async getAllocationAnalysis(@Query('strategyId') strategyId?: string) {
     const impersonationId =
-      await this.impersonationService.validateImpersonationId(
-        this.request.user.id,
-        this.request.user.id
-      );
+      await this.impersonationService.validateImpersonationId();
 
     return this.rebalancingService.getAllocationAnalysis(
       this.request.user.id,
@@ -222,14 +215,10 @@ export class RebalancingController {
   }
 
   @Get('drift-summary')
-  @HasPermission(permissions.readPortfolio)
-  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  @UseGuards(AuthGuard('jwt'))
   public async getDriftSummary() {
     const impersonationId =
-      await this.impersonationService.validateImpersonationId(
-        this.request.user.id,
-        this.request.user.id
-      );
+      await this.impersonationService.validateImpersonationId();
 
     return this.rebalancingService.getDriftSummary(
       this.request.user.id,
@@ -238,16 +227,12 @@ export class RebalancingController {
   }
 
   @Get('suggestions')
-  @HasPermission(permissions.readPortfolio)
-  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  @UseGuards(AuthGuard('jwt'))
   public async getRebalancingSuggestions(
     @Query('strategyId') strategyId?: string
   ) {
     const impersonationId =
-      await this.impersonationService.validateImpersonationId(
-        this.request.user.id,
-        this.request.user.id
-      );
+      await this.impersonationService.validateImpersonationId();
 
     return this.rebalancingService.getRebalancingSuggestions(
       this.request.user.id,
@@ -256,4 +241,3 @@ export class RebalancingController {
     );
   }
 }
-
