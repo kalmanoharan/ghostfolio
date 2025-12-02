@@ -332,20 +332,94 @@ Then restart Ghostfolio container.
 
 ---
 
+## Versioning Scheme
+
+Your custom builds use semantic versioning: `v{MAJOR}.{MINOR}.{PATCH}`
+
+| Version Part | When to Increment |
+|--------------|-------------------|
+| **MAJOR** | Breaking changes, major new features |
+| **MINOR** | New features (like new asset classes) |
+| **PATCH** | Bug fixes, small improvements |
+
+### Current Version
+Check `VERSION` file in repo root: **v1.0.0** (Custom Asset Classes)
+
+### Version History
+| Version | Date | Changes |
+|---------|------|---------|
+| v1.0.0 | Dec 2, 2025 | Added DEBT, PRECIOUS_METALS asset classes and sub-classes |
+
+---
+
 ## Future Updates Workflow
 
-When you need to make changes:
+### Option A: Development Build (push to main)
+Creates tags: `dev`, `custom`
 
-1. **Edit code** in your local fork
-2. **Commit & push** to GitHub:
-   ```bash
-   git add .
-   git commit -m "description of changes"
-   git push origin main
-   ```
-3. **Wait for GitHub Actions** to build (~15-20 min)
-4. **On OMV/Portainer:** Pull & redeploy the stack
-5. **Run migrations** if schema changed
+```bash
+git add .
+git commit -m "description of changes"
+git push origin main
+```
+
+### Option B: Release Version (recommended for production)
+Creates tags: `v1.0.0`, `v1.0`, `v1`, `custom`, `latest`
+
+```bash
+# 1. Update VERSION file
+echo "1.1.0" > VERSION
+
+# 2. Commit your changes
+git add .
+git commit -m "feat: Add new feature X"
+
+# 3. Create a version tag
+git tag v1.1.0
+
+# 4. Push both commit and tag
+git push origin main
+git push origin v1.1.0
+```
+
+### Option C: Manual Trigger
+1. Go to GitHub → Actions → "Build and Push Custom Ghostfolio Image"
+2. Click "Run workflow"
+3. Optionally enter a version tag
+4. Click "Run workflow"
+
+---
+
+## Docker Image Tags
+
+| Tag | Description | Use Case |
+|-----|-------------|----------|
+| `v1.0.0` | Specific version | Production (recommended) |
+| `v1.0` | Latest patch of v1.0.x | Production |
+| `v1` | Latest minor of v1.x.x | Rolling updates |
+| `latest` | Latest tagged release | Always newest stable |
+| `custom` | Always present | Generic reference |
+| `dev` | Latest main branch | Testing new features |
+
+### In Docker Compose
+```yaml
+# For stable production
+image: kalmanoharan/ghostfolio:v1.0.0
+
+# For auto-updates within minor version
+image: kalmanoharan/ghostfolio:v1.0
+
+# For latest features (may have bugs)
+image: kalmanoharan/ghostfolio:dev
+```
+
+---
+
+## Deployment Steps
+
+1. **Wait for GitHub Actions** to build (~15-20 min)
+2. **On OMV/Portainer:** Pull & redeploy the stack
+3. **Run migrations** if schema changed
 
 ---
 
