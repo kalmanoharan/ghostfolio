@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import Big from 'big.js';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 import {
   PPCostBasisSummary,
@@ -58,7 +58,7 @@ export class PPCostBasisCalculator {
     }
 
     const lot: PPPurchaseLot = {
-      id: uuidv4(),
+      id: randomUUID(),
       date,
       shares,
       costPerShare: shares.gt(0) ? totalCost.div(shares) : new Big(0),
@@ -199,7 +199,7 @@ export class PPCostBasisCalculator {
         // Transfer entire lot
         transferredLots.push({
           ...lot,
-          id: uuidv4(), // New ID for the transferred lot
+          id: randomUUID(), // New ID for the transferred lot
           date: lot.date, // Keep original purchase date for holding period
           shares: sharesToTake,
           remainingShares: sharesToTake
@@ -208,7 +208,7 @@ export class PPCostBasisCalculator {
       } else {
         // Partial transfer - create new lot with portion of original
         transferredLots.push({
-          id: uuidv4(),
+          id: randomUUID(),
           date: lot.date,
           shares: sharesToTake,
           costPerShare: lot.costPerShare,

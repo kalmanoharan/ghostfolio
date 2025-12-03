@@ -2239,7 +2239,7 @@ export class PortfolioService {
 
     // Convert activities to PP format
     const ppActivities: GhostfolioActivity[] = activities.map((activity) => ({
-      date: parseDate(activity.date),
+      date: activity.date, // Already a Date object from Prisma
       type: activity.type as GhostfolioActivity['type'],
       symbol: activity.SymbolProfile?.symbol,
       quantity: new Big(activity.quantity),
