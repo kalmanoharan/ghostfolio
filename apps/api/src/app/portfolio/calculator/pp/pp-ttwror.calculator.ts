@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import Big from 'big.js';
+import { Big } from 'big.js';
 import { differenceInDays } from 'date-fns';
 
 import { PPTtwrorResult, PPValuationPoint } from './interfaces';

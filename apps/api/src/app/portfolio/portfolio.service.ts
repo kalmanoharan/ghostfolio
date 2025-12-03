@@ -2316,9 +2316,6 @@ export class PortfolioService {
       await this.impersonationService.validateImpersonationId(impersonationId);
     const effectiveUserId = impersonationUserId || userId;
 
-    const user = await this.userService.user({ id: effectiveUserId });
-    const userCurrency = user?.settings?.settings?.baseCurrency ?? DEFAULT_CURRENCY;
-
     // Get holdings
     const { holdings } = await this.getDetails({
       filters,
@@ -2396,7 +2393,8 @@ export class PortfolioService {
   }): Promise<{ success: boolean; message: string }> {
     const impersonationUserId =
       await this.impersonationService.validateImpersonationId(impersonationId);
-    const effectiveUserId = impersonationUserId || userId;
+    // effectiveUserId will be used when target persistence is implemented
+    const _effectiveUserId = impersonationUserId || userId;
 
     // Validate targets
     const rebalancingService = this.calculatorFactory.createPPRebalancingService();

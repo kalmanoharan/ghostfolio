@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import Big from 'big.js';
+import { Big } from 'big.js';
 import { randomUUID } from 'node:crypto';
 
 import {
@@ -107,7 +107,7 @@ export class PPCostBasisCalculator {
     securityId: string,
     sharesToSell: Big,
     salePrice: Big,
-    saleDate: Date
+    _saleDate: Date
   ): PPSaleResult {
     const securityLots = this.lots.get(securityId) || [];
 
@@ -173,7 +173,7 @@ export class PPCostBasisCalculator {
   public processTransfer(
     securityId: string,
     sharesToTransfer: Big,
-    transferDate: Date
+    _transferDate: Date
   ): PPPurchaseLot[] {
     const securityLots = this.lots.get(securityId) || [];
     const transferredLots: PPPurchaseLot[] = [];
@@ -286,9 +286,10 @@ export class PPCostBasisCalculator {
 
   /**
    * Calculate total realized gains across all sales for a security
+   * Note: This is a placeholder - actual implementation would need sale history
+   * to be tracked separately during sales processing.
    */
-  public getTotalRealizedGains(securityId: string): Big {
-    const allLots = this.lots.get(securityId) || [];
+  public getTotalRealizedGains(_securityId: string): Big {
     // Realized gains would need to be tracked separately during sales
     // This is a placeholder - actual implementation would need sale history
     return new Big(0);
