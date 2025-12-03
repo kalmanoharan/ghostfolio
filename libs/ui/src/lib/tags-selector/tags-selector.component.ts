@@ -12,6 +12,7 @@ import {
   Optional,
   Self,
   signal,
+  SimpleChanges,
   ViewChild
 } from '@angular/core';
 import {
@@ -87,8 +88,10 @@ export class GfTagsSelectorComponent
     this.updateFilters();
   }
 
-  public ngOnChanges() {
-    this.tagsSelected.set(this.tags);
+  public ngOnChanges(changes: SimpleChanges) {
+    if (changes['tags']) {
+      this.tagsSelected.set(this.tags);
+    }
     this.updateFilters();
   }
 
