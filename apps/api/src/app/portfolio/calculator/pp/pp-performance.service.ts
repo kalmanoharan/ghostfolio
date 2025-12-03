@@ -1,13 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Big } from 'big.js';
-import { differenceInDays } from 'date-fns';
 
 import {
   PPCashFlow,
   PPCostBasisSummary,
   PPIrrResult,
   PPPerformanceMetrics,
-  PPTtwrorResult,
   PPValuationPoint
 } from './interfaces';
 import { PPCostBasisCalculator } from './pp-cost-basis.calculator';
@@ -207,8 +205,8 @@ export class PPPerformanceService {
    */
   private calculateCapitalGains(
     activities: GhostfolioActivity[],
-    currentValue: Big,
-    endDate: Date
+    _currentValue: Big,
+    _endDate: Date
   ): { realized: Big; unrealized: Big; total: Big } {
     // Reset cost basis calculator
     this.costBasisCalculator.clear();

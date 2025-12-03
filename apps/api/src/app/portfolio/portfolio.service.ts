@@ -2391,10 +2391,8 @@ export class PortfolioService {
     targets: PPRebalancingTarget[];
     userId: string;
   }): Promise<{ success: boolean; message: string }> {
-    const impersonationUserId =
-      await this.impersonationService.validateImpersonationId(impersonationId);
-    // effectiveUserId will be used when target persistence is implemented
-    const _effectiveUserId = impersonationUserId || userId;
+    // Validate impersonation (throws if invalid)
+    await this.impersonationService.validateImpersonationId(impersonationId);
 
     // Validate targets
     const rebalancingService = this.calculatorFactory.createPPRebalancingService();
