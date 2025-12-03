@@ -602,7 +602,8 @@ export class OrderService {
           unitPriceInAssetProfileCurrency,
           value,
           valueInBaseCurrency,
-          SymbolProfile: assetProfile
+          SymbolProfile: assetProfile,
+          tags: order.tags ?? []
         };
       })
     );
