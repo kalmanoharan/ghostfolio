@@ -14,6 +14,13 @@ import { Injectable } from '@nestjs/common';
 
 import { MwrPortfolioCalculator } from './mwr/portfolio-calculator';
 import { PortfolioCalculator } from './portfolio-calculator';
+import {
+  PPCostBasisCalculator,
+  PPIrrCalculator,
+  PPPerformanceService,
+  PPRebalancingService,
+  PPTtwrorCalculator
+} from './pp';
 import { RoaiPortfolioCalculator } from './roai/portfolio-calculator';
 import { RoiPortfolioCalculator } from './roi/portfolio-calculator';
 import { TwrPortfolioCalculator } from './twr/portfolio-calculator';
@@ -103,5 +110,49 @@ export class PortfolioCalculatorFactory {
       default:
         throw new Error('Invalid calculation type');
     }
+  }
+
+  /**
+   * Create PP IRR Calculator
+   * Ported from Portfolio Performance - uses Newton-Raphson method
+   */
+  public createPPIrrCalculator(): PPIrrCalculator {
+    return new PPIrrCalculator();
+  }
+
+  /**
+   * Create PP TTWROR Calculator
+   * Ported from Portfolio Performance - True Time-Weighted Rate of Return
+   */
+  public createPPTtwrorCalculator(): PPTtwrorCalculator {
+    return new PPTtwrorCalculator();
+  }
+
+  /**
+   * Create PP Cost Basis Calculator
+   * FIFO-based cost basis tracking for capital gains
+   */
+  public createPPCostBasisCalculator(): PPCostBasisCalculator {
+    return new PPCostBasisCalculator();
+  }
+
+  /**
+   * Create PP Rebalancing Service
+   * Calculates target vs actual allocations and suggests trades
+   */
+  public createPPRebalancingService(): PPRebalancingService {
+    return new PPRebalancingService();
+  }
+
+  /**
+   * Create PP Performance Service
+   * Combined service that integrates all PP calculators
+   */
+  public createPPPerformanceService(): PPPerformanceService {
+    return new PPPerformanceService(
+      this.createPPIrrCalculator(),
+      this.createPPTtwrorCalculator(),
+      this.createPPCostBasisCalculator()
+    );
   }
 }

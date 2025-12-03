@@ -38,6 +38,12 @@ import type {
 } from '@ghostfolio/common/types';
 
 import {
+  PPPerformanceMetrics,
+  PPRebalancingResult,
+  PPRebalancingTarget
+} from './calculator/pp';
+
+import {
   Body,
   Controller,
   Get,
@@ -45,6 +51,7 @@ import {
   HttpException,
   Inject,
   Param,
+  Post,
   Put,
   Query,
   UseGuards,
@@ -666,6 +673,95 @@ export class PortfolioController {
       impersonationId,
       symbol,
       tags: data.tags,
+      userId: this.request.user.id
+    });
+  }
+
+  /**
+   * Get Portfolio Performance metrics using PP algorithms
+   * Returns side-by-side comparison with ROAI metrics
+   */
+  @Get('performance/pp')
+  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  @UseInterceptors(PerformanceLoggingInterceptor)
+  @UseInterceptors(TransformDataSourceInRequestInterceptor)
+  public async getPerformancePP(
+    @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string,
+    @Query('accounts') filterByAccounts?: string,
+    @Query('assetClasses') filterByAssetClasses?: string,
+    @Query('dataSource') filterByDataSource?: string,
+    @Query('range') dateRange: DateRange = 'max',
+    @Query('symbol') filterBySymbol?: string,
+    @Query('tags') filterByTags?: string
+  ): Promise<{
+    pp: PPPerformanceMetrics;
+    roai: PortfolioPerformanceResponse;
+  }> {
+    const filters = this.apiService.buildFiltersFromQueryParams({
+      filterByAccounts,
+      filterByAssetClasses,
+      filterByDataSource,
+      filterBySymbol,
+      filterByTags
+    });
+
+    const result = await this.portfolioService.getPerformancePP({
+      dateRange,
+      filters,
+      impersonationId,
+      userId: this.request.user.id
+    });
+
+    return result;
+  }
+
+  /**
+   * Get rebalancing recommendations based on target allocations
+   */
+  @Get('rebalancing')
+  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  @UseInterceptors(TransformDataSourceInRequestInterceptor)
+  public async getRebalancing(
+    @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string,
+    @Query('accounts') filterByAccounts?: string,
+    @Query('assetClasses') filterByAssetClasses?: string,
+    @Query('newInvestment') newInvestment?: string
+  ): Promise<{
+    results: PPRebalancingResult[];
+    suggestions: Array<{
+      categoryId: string;
+      categoryName: string;
+      amount: number;
+      percent: number;
+    }>;
+  }> {
+    const filters = this.apiService.buildFiltersFromQueryParams({
+      filterByAccounts,
+      filterByAssetClasses
+    });
+
+    const result = await this.portfolioService.getRebalancing({
+      filters,
+      impersonationId,
+      newInvestment: newInvestment ? new Big(newInvestment) : undefined,
+      userId: this.request.user.id
+    });
+
+    return result;
+  }
+
+  /**
+   * Set rebalancing targets for asset classes
+   */
+  @Post('rebalancing/targets')
+  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  public async setRebalancingTargets(
+    @Headers(HEADER_KEY_IMPERSONATION.toLowerCase()) impersonationId: string,
+    @Body() targets: PPRebalancingTarget[]
+  ): Promise<{ success: boolean; message: string }> {
+    return this.portfolioService.setRebalancingTargets({
+      impersonationId,
+      targets,
       userId: this.request.user.id
     });
   }

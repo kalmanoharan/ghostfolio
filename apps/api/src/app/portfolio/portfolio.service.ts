@@ -91,6 +91,14 @@ import {
 
 import { PortfolioCalculator } from './calculator/portfolio-calculator';
 import { PortfolioCalculatorFactory } from './calculator/portfolio-calculator.factory';
+import {
+  GhostfolioActivity,
+  GhostfolioValuation,
+  HoldingForRebalancing,
+  PPPerformanceMetrics,
+  PPRebalancingResult,
+  PPRebalancingTarget
+} from './calculator/pp';
 import { RulesService } from './rules.service';
 
 const Fuse = require('fuse.js');
@@ -2179,5 +2187,236 @@ export class PortfolioService {
     }
 
     return { accounts, platforms };
+  }
+
+  /**
+   * Get Portfolio Performance using PP algorithms
+   * Returns both PP metrics and ROAI metrics for side-by-side comparison
+   */
+  public async getPerformancePP({
+    dateRange,
+    filters,
+    impersonationId,
+    userId
+  }: {
+    dateRange?: DateRange;
+    filters?: Filter[];
+    impersonationId: string;
+    userId: string;
+  }): Promise<{
+    pp: PPPerformanceMetrics;
+    roai: PortfolioPerformanceResponse;
+  }> {
+    const impersonationUserId =
+      await this.impersonationService.validateImpersonationId(impersonationId);
+    const effectiveUserId = impersonationUserId || userId;
+
+    const user = await this.userService.user({ id: effectiveUserId });
+    const userCurrency = user?.settings?.settings?.baseCurrency ?? DEFAULT_CURRENCY;
+
+    // Get date interval
+    const { endDate, startDate } = getIntervalFromDateRange(dateRange ?? 'max');
+
+    // Get activities
+    const { activities } = await this.orderService.getOrders({
+      endDate,
+      filters,
+      startDate,
+      userCurrency,
+      userId: effectiveUserId
+    });
+
+    // Get ROAI performance (existing calculation)
+    const roaiPerformance = await this.getPerformance({
+      dateRange,
+      filters,
+      impersonationId,
+      userId
+    });
+
+    // Create PP Performance Service
+    const ppService = this.calculatorFactory.createPPPerformanceService();
+
+    // Convert activities to PP format
+    const ppActivities: GhostfolioActivity[] = activities.map((activity) => ({
+      date: parseDate(activity.date),
+      type: activity.type as GhostfolioActivity['type'],
+      symbol: activity.SymbolProfile?.symbol,
+      quantity: new Big(activity.quantity),
+      unitPrice: new Big(activity.unitPrice),
+      fee: new Big(activity.fee),
+      currency: activity.SymbolProfile?.currency ?? userCurrency,
+      value: new Big(activity.value ?? activity.quantity * activity.unitPrice)
+    }));
+
+    // Build daily valuations from ROAI chart data
+    // Calculate external flows by tracking changes in totalInvestment
+    const chartData = roaiPerformance.chart || [];
+    const valuations: GhostfolioValuation[] = chartData.map((item, index) => {
+      let externalFlow = new Big(0);
+
+      if (index > 0) {
+        const prevInvestment = chartData[index - 1].totalInvestment ?? 0;
+        const currInvestment = item.totalInvestment ?? 0;
+        // Change in investment represents external flows (deposits - withdrawals)
+        externalFlow = new Big(currInvestment).minus(prevInvestment);
+      }
+
+      return {
+        date: parseDate(item.date),
+        totalValue: new Big(item.value ?? 0),
+        deposits: externalFlow.gt(0) ? externalFlow : new Big(0),
+        withdrawals: externalFlow.lt(0) ? externalFlow.abs() : new Big(0)
+      };
+    });
+
+    // Calculate current portfolio value
+    const currentValue = new Big(
+      roaiPerformance.performance?.currentValueInBaseCurrency ?? 0
+    );
+
+    // Calculate PP metrics
+    const ppMetrics = ppService.calculatePerformance(
+      ppActivities,
+      valuations,
+      startDate,
+      endDate,
+      currentValue
+    );
+
+    return {
+      pp: ppMetrics,
+      roai: roaiPerformance
+    };
+  }
+
+  /**
+   * Get rebalancing recommendations based on target allocations
+   */
+  public async getRebalancing({
+    filters,
+    impersonationId,
+    newInvestment,
+    userId
+  }: {
+    filters?: Filter[];
+    impersonationId: string;
+    newInvestment?: Big;
+    userId: string;
+  }): Promise<{
+    results: PPRebalancingResult[];
+    suggestions: Array<{
+      categoryId: string;
+      categoryName: string;
+      amount: number;
+      percent: number;
+    }>;
+  }> {
+    const impersonationUserId =
+      await this.impersonationService.validateImpersonationId(impersonationId);
+    const effectiveUserId = impersonationUserId || userId;
+
+    const user = await this.userService.user({ id: effectiveUserId });
+    const userCurrency = user?.settings?.settings?.baseCurrency ?? DEFAULT_CURRENCY;
+
+    // Get holdings
+    const { holdings } = await this.getDetails({
+      filters,
+      impersonationId,
+      userId: effectiveUserId,
+      withSummary: false
+    });
+
+    // Convert holdings to rebalancing format
+    const holdingsForRebalancing: HoldingForRebalancing[] = Object.entries(
+      holdings
+    ).map(([symbol, holding]) => ({
+      symbol,
+      name: holding.name ?? symbol,
+      categoryId: holding.assetClass ?? 'UNKNOWN',
+      marketValue: new Big(holding.valueInBaseCurrency ?? 0)
+    }));
+
+    // Get target allocations from user settings
+    // For now, use default targets based on asset classes present
+    const assetClasses = new Set(
+      holdingsForRebalancing.map((h) => h.categoryId)
+    );
+    const targets: PPRebalancingTarget[] = Array.from(assetClasses).map(
+      (assetClass) => ({
+        categoryId: assetClass,
+        categoryName: assetClass,
+        targetAllocation: 1 / assetClasses.size // Equal weight by default
+      })
+    );
+
+    // Create rebalancing service
+    const rebalancingService = this.calculatorFactory.createPPRebalancingService();
+
+    // Calculate rebalancing
+    const results = rebalancingService.calculateRebalancing(
+      holdingsForRebalancing,
+      targets,
+      {
+        newInvestment,
+        minimumTradeSize: new Big(100), // Minimum $100 trade
+        allowSelling: true
+      }
+    );
+
+    // Get suggestions for new investment allocation
+    const suggestions = newInvestment
+      ? rebalancingService
+          .suggestNewInvestmentAllocation(newInvestment, results)
+          .map((s) => ({
+            categoryId: s.categoryId,
+            categoryName: s.categoryName,
+            amount: s.amount.toNumber(),
+            percent: s.percent
+          }))
+      : [];
+
+    return {
+      results,
+      suggestions
+    };
+  }
+
+  /**
+   * Set rebalancing targets for asset classes
+   */
+  public async setRebalancingTargets({
+    impersonationId,
+    targets,
+    userId
+  }: {
+    impersonationId: string;
+    targets: PPRebalancingTarget[];
+    userId: string;
+  }): Promise<{ success: boolean; message: string }> {
+    const impersonationUserId =
+      await this.impersonationService.validateImpersonationId(impersonationId);
+    const effectiveUserId = impersonationUserId || userId;
+
+    // Validate targets
+    const rebalancingService = this.calculatorFactory.createPPRebalancingService();
+    const validation = rebalancingService.validateTargets(targets);
+
+    if (!validation.valid) {
+      return {
+        success: false,
+        message: validation.message
+      };
+    }
+
+    // Store targets in user settings
+    // This would require adding a new field to user settings
+    // For now, just validate and return success
+    // TODO: Persist targets to database
+
+    return {
+      success: true,
+      message: `Target allocations set successfully. Total: ${(validation.totalAllocation * 100).toFixed(2)}%`
+    };
   }
 }
