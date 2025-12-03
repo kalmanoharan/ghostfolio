@@ -6,6 +6,21 @@
   padding: 1rem;
   max-width: 1200px;
   margin: 0 auto;
+  overflow-x: hidden;
+}
+
+// Tab styling
+::ng-deep .mat-mdc-tab-labels {
+  .mat-mdc-tab {
+    min-width: 80px;
+    max-width: 160px;
+    
+    .mdc-tab__text-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
 }
 
 .loading-container {
@@ -43,18 +58,18 @@
 // Strategy Header
 .strategy-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 
   .strategy-selector {
-    flex: 1;
-    max-width: 300px;
+    flex: 0 1 280px;
+    min-width: 200px;
   }
 
-  .strategy-actions {
-    display: flex;
-    gap: 0.5rem;
+  .delete-strategy-btn {
+    flex-shrink: 0;
   }
 }
 

@@ -67,32 +67,29 @@
     } @else {
       <!-- Strategy Active -->
       <div class="strategy-header">
-        <div class="strategy-selector">
-          <mat-form-field appearance="outline">
-            <mat-label>Active Strategy</mat-label>
-            <mat-select
-              [value]="activeStrategy.id"
-              (selectionChange)="onStrategyChange($event.value)"
-            >
-              @for (strategy of strategies; track strategy.id) {
-                <mat-option [value]="strategy.id">
-                  {{ strategy.name }}
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-
-        <div class="strategy-actions">
-          <button
-            mat-icon-button
-            color="warn"
-            matTooltip="Delete Strategy"
-            (click)="deleteStrategy(activeStrategy.id)"
+        <mat-form-field appearance="outline" class="strategy-selector">
+          <mat-label>Active Strategy</mat-label>
+          <mat-select
+            [value]="activeStrategy.id"
+            (selectionChange)="onStrategyChange($event.value)"
           >
-            <mat-icon>delete</mat-icon>
-          </button>
-        </div>
+            @for (strategy of strategies; track strategy.id) {
+              <mat-option [value]="strategy.id">
+                {{ strategy.name }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <button
+          mat-icon-button
+          color="warn"
+          class="delete-strategy-btn"
+          matTooltip="Delete Strategy"
+          (click)="deleteStrategy(activeStrategy.id)"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
       </div>
 
       <!-- Summary Cards -->
@@ -196,7 +193,7 @@
         </mat-tab>
 
         <!-- Targets Tab -->
-        <mat-tab label="Target Allocation">
+        <mat-tab label="Targets">
           <div class="tab-content">
             @if (isEditingTargets) {
               <div class="targets-editor">
