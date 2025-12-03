@@ -84,7 +84,11 @@ export class GfTagsSelectorComponent
   }
 
   public ngOnInit() {
-    this.tagsSelected.set(this.tags);
+    // Only set from @Input if NOT using ControlValueAccessor (form control)
+    // When using formControlName, writeValue() already sets the initial value
+    if (this.tags && !this.ngControl) {
+      this.tagsSelected.set(this.tags);
+    }
     this.updateFilters();
   }
 
